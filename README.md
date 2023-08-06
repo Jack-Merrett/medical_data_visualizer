@@ -40,7 +40,7 @@ For additional resources and learning materials, consider exploring the followin
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under freecodecamp.com - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
