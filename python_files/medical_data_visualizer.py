@@ -7,7 +7,8 @@ import numpy as np
 df = pd.read_csv('../data/medical_examination.csv')
 
 # Add 'overweight' column
-df['overweight'] = None
+df['bmi'] = df['weight'] / (df['height'] / 100) ** 2
+df['overweight'] = df['bmi'].apply(lambda x: 1 if x > 25.0 else 0)
 
 # Normalize data by making 0 always good and 1 always bad. If the value of 'cholesterol' or 'gluc' is 1, make the value 0. If the value is more than 1, make the value 1.
 def replace_values(value):
@@ -20,29 +21,20 @@ df['cholesterol'] = df['cholesterol'].apply(replace_values)
 
 # Draw Categorical Plot
 def draw_cat_plot():
-    # Create DataFrame for cat plot using `pd.melt` using just the values from 'cholesterol', 'gluc', 'smoke', 'alco', 'active', and 'overweight'.
+    # Convert the data into long format
     columns_to_melt = ['cholesterol', 'gluc', 'smoke', 'alco', 'active', 'overweight']
-    melted_df = pd.melt(df, value_vars=columns_to_melt, value_name='value', var_name='attribute')
-
-    # Group and reformat the data to split it by 'cardio'. Show the counts of each feature. You will have to rename one of the columns for the catplot to work correctly.
-    # Assuming your DataFrame is named 'df_cat'
-    grouped = melted_df.groupby(['cardio', 'attribute', 'value']).size().reset_index(name='total_count')
-
-    # Pivot the table to have 'attribute' as columns and 'value' as index
-    pivot_table = grouped.pivot_table(index=['cardio', 'value'], columns='attribute', values='total_count', fill_value=0)
-
-    # Rename columns for the catplot
-    pivot_table.columns = [f'{col}_count' for col in pivot_table.columns]
-
-    # Reset index for the DataFrame
-    pivot_table = pivot_table.reset_index()
+    melted_df = pd.melt(df, id_vars=['cardio'], value_vars=columns_to_melt, var_name='attribute', value_name='value')
 
     # Plotting
-    sns.set(style="whitegrid")
-    g = sns.catplot(data=pivot_table, x='cardio', y='cholesterol_count', hue='value', kind='bar')
-    g.set_axis_labels("Cardiovascular Disease", "Cholesterol Counts")
+    # Create a cat plot using Seaborn's catplot()
+    g = sns.catplot(data=melted_df, x='attribute', hue='value', kind='count', col='cardio', height=4, aspect=1.5, sharey=False)
+    g.set_axis_labels('Attribute', 'Count')
+    g.set_titles('Cardio: {col_name}')
+    g.legend.set_title('Value')
+    plt.subplots_adjust(top=0.85)  # Adjust top spacing for the titles
+    plt.suptitle('Categorical Features Count by Cardio')
     plt.show()
-
+    
     # Get the figure for the output
     fig = g.fig
 
@@ -53,23 +45,28 @@ def draw_cat_plot():
 
 # Draw Heat Map
 def draw_heat_map():
-    # Clean the data
-    df_heat = None
+# Clean the data
+    df_heat = df[
+        (df['ap_lo'] <= df['ap_hi']) &
+        (df['height'] >= df['height'].quantile(0.025)) &
+        (df['height'] <= df['height'].quantile(0.975)) &
+        (df['weight'] >= df['weight'].quantile(0.025)) &
+        (df['weight'] <= df['weight'].quantile(0.975))
+    ]
 
     # Calculate the correlation matrix
-    corr = None
+    corr = df_heat.corr()
 
     # Generate a mask for the upper triangle
-    mask = None
-
-
+    mask = np.triu(corr)
 
     # Set up the matplotlib figure
-    fig, ax = None
+    fig, ax = plt.subplots(figsize=(12, 9))
 
     # Draw the heatmap with 'sns.heatmap()'
-
-
+    sns.heatmap(corr, annot=True, fmt=".1f", linewidths=0.5, mask=mask, vmax=0.25, center=0, square=True, cbar_kws={"shrink": 0.75})
+    plt.title("Correlation Plot")
+    plt.show()
 
     # Do not modify the next two lines
     fig.savefig('heatmap.png')
